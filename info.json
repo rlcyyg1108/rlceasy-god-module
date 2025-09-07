@@ -1,0 +1,10 @@
+{
+  "name": "rlceasy-god-module",
+  "version": "0.0.1",
+  "factorio_version": "2.0",
+  "title": "easy god module",
+  "author": "rlcyyg1108",
+  "contact": "yzy_0920@qq.com",
+	"homepage": "https://github.com/rlcyyg1108/rlceasy-god-module",
+  "description": "from https://mods.factorio.com/mod/god-module.\nThis mod adds a god version of the modules (without the negative effects) and a combined god module."
+}
