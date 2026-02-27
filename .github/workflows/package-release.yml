@@ -1,0 +1,66 @@
+name: 自动打包发布
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 获取自增版本号
+        id: get_version
+        run: |
+          $tags = git tag --list "v*" | Sort-Object { [version]($_ -replace 'v','') }
+          if ($tags) {
+            $lastTag = $tags[-1]
+            $version = [int]($lastTag -replace 'v','') + 1
+          } else {
+            $version = 1
+          }
+          echo "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: 打包指定文件
+        run: |
+          $excludeFiles = @(
+            "prototypes/item.lua",
+            "settings.lua"
+          )
+
+          New-Item -ItemType Directory -Path temp_package -Force | Out-Null
+          foreach ($file in $includeFiles) {
+            if (Test-Path $file) {
+              Copy-Item -Path $file -Destination temp_package\ -Recurse -Force
+            }
+          }
+          foreach ($exclude in $excludeFiles) {
+            Get-ChildItem -Path temp_package -Recurse -Name $exclude -ErrorAction SilentlyContinue | ForEach-Object {
+              Remove-Item -Path "temp_package\$_" -Recurse -Force
+            }
+          }
+          Compress-Archive -Path temp_package\* -DestinationPath $packageName -Force
+          Remove-Item -Path temp_package -Recurse -Force
+          echo "PACKAGE_NAME=$packageName" >> $env:GITHUB_ENV
+          echo "::set-output name=tag::v$env:VERSION"
+
+      - name: 创建Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: test测试v${{ env.VERSION }}
+          files: ${{ env.PACKAGE_NAME }}
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 推送版本标签
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag -a v$env:VERSION -m "test测试v$env:VERSION"
+          git push origin v$env:VERSION
