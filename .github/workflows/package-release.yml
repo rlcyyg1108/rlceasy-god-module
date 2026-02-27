@@ -27,26 +27,23 @@ jobs:
 
       - name: 打包指定文件
         run: |
+          $packageName = "test测试v$env:VERSION.zip"
           $excludeFiles = @(
             "prototypes/item.lua",
             "settings.lua"
           )
 
           New-Item -ItemType Directory -Path temp_package -Force | Out-Null
-          foreach ($file in $includeFiles) {
-            if (Test-Path $file) {
-              Copy-Item -Path $file -Destination temp_package\ -Recurse -Force
-            }
-          }
+          Copy-Item -Path * -Destination temp_package\ -Recurse -Force
           foreach ($exclude in $excludeFiles) {
-            Get-ChildItem -Path temp_package -Recurse -Name $exclude -ErrorAction SilentlyContinue | ForEach-Object {
-              Remove-Item -Path "temp_package\$_" -Recurse -Force
+            $excludePath = Join-Path -Path temp_package -ChildPath $exclude
+            if (Test-Path $excludePath) {
+              Remove-Item -Path $excludePath -Recurse -Force
             }
           }
           Compress-Archive -Path temp_package\* -DestinationPath $packageName -Force
           Remove-Item -Path temp_package -Recurse -Force
           echo "PACKAGE_NAME=$packageName" >> $env:GITHUB_ENV
-          echo "::set-output name=tag::v$env:VERSION"
 
       - name: 创建Release
         uses: softprops/action-gh-release@v2
